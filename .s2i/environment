@@ -1,0 +1,5 @@
+# Environment variables for S2I build
+PYTHON_VERSION=3.9
+PIP_INDEX_URL=https://pypi.org/simple/
+PIP_DISABLE_PIP_VERSION_CHECK=1
+PIP_NO_CACHE_DIR=1

@@ -1,0 +1,82 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: fastapi-build-deploy
+  namespace: crt-20521594-dev
+spec:
+  params:
+  - name: git-url
+    type: string
+    description: "Git repository URL"
+  - name: git-revision
+    type: string
+    description: "Git revision to build"
+    default: "main"
+  - name: image-url
+    type: string
+    description: "Image registry URL"
+  - name: app-name
+    type: string
+    description: "Application name"
+  workspaces:
+  - name: shared-workspace
+  tasks:
+  - name: fetch-source
+    taskRef:
+      name: git-clone
+    params:
+    - name: url
+      value: $(params.git-url)
+    - name: revision
+      value: $(params.git-revision)
+    workspaces:
+    - name: output
+      workspace: shared-workspace
+  - name: build-image
+    taskRef:
+      name: s2i-python
+    runAfter: [fetch-source]
+    params:
+    - name: IMAGE
+      value: $(params.image-url)
+    - name: TLSVERIFY
+      value: "false"
+    workspaces:
+    - name: source
+      workspace: shared-workspace
+  - name: deploy-app
+    taskRef:
+      name: openshift-client
+    runAfter: [build-image]
+    params:
+    - name: SCRIPT
+      value: |
+        oc rollout latest dc/$(params.app-name)
+        oc rollout status dc/$(params.app-name)
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: fastapi-build-deploy-run
+  namespace: crt-20521594-dev
+spec:
+  pipelineRef:
+    name: fastapi-build-deploy
+  params:
+  - name: git-url
+    value: "https://github.com/your-org/fastapi-app.git"
+  - name: git-revision
+    value: "main"
+  - name: image-url
+    value: "image-registry.openshift-image-registry.svc:5000/crt-20521594-dev/fastapi-app:latest"
+  - name: app-name
+    value: "fastapi-app"
+  workspaces:
+  - name: shared-workspace
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi

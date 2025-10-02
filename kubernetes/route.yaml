@@ -1,0 +1,14 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: fastapi-route
+  namespace: crt-20521594-dev
+spec:
+  to:
+    kind: Service
+    name: fastapi-service
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

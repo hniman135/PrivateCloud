@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fastapi-config
+  namespace: crt-20521594-dev
+data:
+  DATABASE_HOST: "postgresql.crt-20521594-dev.svc.cluster.local"
+  DATABASE_PORT: "5432"  # Direct PostgreSQL port
+  DATABASE_NAME: "fastapi_db"
+  LOG_LEVEL: "INFO"
+  WORKERS_PER_CORE: "2"
+  MAX_WORKERS: "4"
+  WEB_CONCURRENCY: "2"  # Will be calculated dynamically
+  HOST: "0.0.0.0"
+  PORT: "8000"

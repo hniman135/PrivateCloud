@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Calculate workers based on CPU cores
+WORKERS_PER_CORE=${WORKERS_PER_CORE:-2}
+MAX_WORKERS=${MAX_WORKERS:-4}
+CPU_CORES=$(nproc)
+WEB_CONCURRENCY=$((CPU_CORES * WORKERS_PER_CORE + 1))
+if [ $WEB_CONCURRENCY -gt $MAX_WORKERS ]; then
+  WEB_CONCURRENCY=$MAX_WORKERS
+fi
+
+export WEB_CONCURRENCY
+
+# Start Gunicorn with Uvicorn workers
+exec gunicorn main:app \
+  --workers $WEB_CONCURRENCY \
+  --worker-class uvicorn.workers.UvicornWorker \
+  --bind 0.0.0.0:8000 \
+  --log-config /opt/app-root/src/log_config.json

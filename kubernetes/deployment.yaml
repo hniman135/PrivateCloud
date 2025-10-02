@@ -1,0 +1,122 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-app
+  namespace: crt-20521594-dev
+spec:
+  replicas: 1  # Will be managed by HPA
+  selector:
+    matchLabels:
+      app: fastapi-app
+  template:
+    metadata:
+      labels:
+        app: fastapi-app
+    spec:
+      containers:
+      - name: fastapi
+        image: image-registry.openshift-image-registry.svc:5000/crt-20521594-dev/fastapi-app:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DATABASE_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: fastapi-config
+              key: DATABASE_HOST
+        - name: DATABASE_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: fastapi-config
+              key: DATABASE_PORT
+        - name: DATABASE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: fastapi-config
+              key: DATABASE_NAME
+        - name: DATABASE_USER
+          valueFrom:
+            secretKeyRef:
+              name: fastapi-secret
+              key: DATABASE_USER
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fastapi-secret
+              key: DATABASE_PASSWORD
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: fastapi-secret
+              key: SECRET_KEY
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: fastapi-config
+              key: LOG_LEVEL
+        - name: WORKERS_PER_CORE
+          valueFrom:
+            configMapKeyRef:
+              name: fastapi-config
+              key: WORKERS_PER_CORE
+        - name: MAX_WORKERS
+          valueFrom:
+            configMapKeyRef:
+              name: fastapi-config
+              key: MAX_WORKERS
+        - name: HOST
+          valueFrom:
+            configMapKeyRef:
+              name: fastapi-config
+              key: HOST
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: fastapi-config
+              key: PORT
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          WEB_CONCURRENCY=$(($(nproc) * $WORKERS_PER_CORE + 1))
+          if [ $WEB_CONCURRENCY -gt $MAX_WORKERS ]; then WEB_CONCURRENCY=$MAX_WORKERS; fi
+          export WEB_CONCURRENCY
+          gunicorn main:app --workers $WEB_CONCURRENCY --worker-class uvicorn.workers.UvicornWorker --bind $HOST:$PORT
+        startupProbe:
+          httpGet:
+            path: /health/startup
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 1
+          # failureThreshold: 3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        volumeMounts:
+        - name: log-config
+          mountPath: /opt/app-root/src/log_config.ini
+          subPath: log_config.ini
+      volumes:
+      - name: log-config
+        configMap:
+          name: log-config

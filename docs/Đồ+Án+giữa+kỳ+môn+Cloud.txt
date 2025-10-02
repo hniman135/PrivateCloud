@@ -1,0 +1,62 @@
+﻿ĐỀ BÀI ĐỒ ÁN GIỮA KỲ
+Tên đề tài: Xây dựng và Tối ưu Private Cloud cho Ứng dụng Web Thông lượng cao
+
+Giới thiệu:
+
+Trong bối cảnh các doanh nghiệp vừa và nhỏ (SMBs) ngày càng phụ thuộc vào các ứng dụng web để vận hành, việc sở hữu một hạ tầng linh hoạt, có khả năng mở rộng và hiệu quả về chi phí là yếu tố sống còn. Private Cloud nổi lên như một giải pháp tối ưu, cung cấp sự kiểm soát, bảo mật và hiệu năng vượt trội so với các mô hình truyền thống.
+Đồ án này yêu cầu các nhóm học viên vận dụng kiến thức đã học và bộ công cụ đã chọn để thiết kế, triển khai và đánh giá hiệu năng một hệ thống Private Cloud hoàn chỉnh, mô phỏng hạ tầng công nghệ thông tin cho một công ty nhỏ.
+
+Mục tiêu chính
+
+
+1. Thiết kế và Xây dựng: Triển khai một hạ tầng Private Cloud chức năng trên một cụm máy chủ vật lý hoặc ảo hóa (tối đa 5 node).
+2. Vận hành Dịch vụ: Triển khai và vận hành thành công một ứng dụng web cơ bản trên hạ tầng Private Cloud vừa xây dựng.
+3. Tối ưu Hiệu năng: Cấu hình và tinh chỉnh hệ thống để đáp ứng yêu cầu về thông lượng cao (high throughput) cho ứng dụng web.
+4. Kiểm thử và Đánh giá: Thực hiện kiểm thử chịu tải (stress test) để đo lường, phân tích và chứng minh khả năng đáp ứng của hệ thống.
+
+Yêu cầu kỹ thuật
+1. Hạ tầng Private Cloud (Tối đa 5 node)
+● Bộ công cụ: Sinh viên phải sử dụng bộ công cụ đã đăng ký trước đó (ví dụ: OpenShift,....).
+● Thành phần cốt lõi: Hệ thống phải có các thành phần cơ bản của một đám mây:
+○ Compute: Cung cấp máy ảo (VMs) hoặc container để chạy ứng dụng.
+○ Storage: Cung cấp giải pháp lưu trữ khối (block storage) hoặc đối tượng (object storage) cho máy ảo và dữ liệu ứng dụng (ví dụ: Ceph, GlusterFS, LVM).
+
+○ Networking: Thiết lập mạng ảo (virtual networking) cho phép giao tiếp giữa các máy
+ảo và kết nối ra bên ngoài.
+○ Dashboard/Portal: Cung cấp giao diện quản lý để người dùng có thể tự phục vụ (self-service) các tài nguyên cơ bản như tạo, xóa, quản lý máy ảo.
+● Tự động hóa: Khuyến khích sử dụng các công cụ tự động hóa hạ tầng như Ansible, Terraform để quá trình cài đặt và cấu hình được nhất quán và có thể lặp lại.
+2. Ứng dụng Web
+● Sinh viên có thể tự phát triển một ứng dụng web đơn giản hoặc sử dụng một ứng dụng mã nguồn mở (ví dụ: một trang blog WordPress, một hệ thống e-commerce Magento cơ bản, hoặc một API server viết bằng Node.js/Python).
+● Ứng dụng phải có ít nhất hai thành phần: một web server (ví dụ: Nginx, Apache) và một
+cơ sở dữ liệu (ví dụ: MySQL, PostgreSQL).
+● Kiến trúc triển khai ứng dụng phải được thiết kế để có khả năng mở rộng (scale-out), ví dụ sử dụng load balancer.
+
+Đánh giá và Chấm điểm (Thang điểm 10)
+Điểm của nhóm sẽ được quyết định dựa trên các tiêu chí sau:
+
+1. Báo cáo và Thiết kế (4 điểm)
+● Mô hình kiến trúc (2 điểm): Trình bày rõ ràng, chi tiết và hợp lý về kiến trúc tổng thể của Private Cloud. Sơ đồ phải minh họa được sự tương tác giữa các node, các thành phần compute, storage, networking. Giải thích lý do lựa chọn kiến trúc và các công nghệ cụ thể.
+● Quy trình triển khai (1 điểm): Mô tả chi tiết các bước cài đặt, cấu hình hệ thống và ứng dụng. Đính kèm các kịch bản tự động hóa (nếu có).
+● Phân tích và Tối ưu (1 điểm): Trình bày các biện pháp đã thực hiện để tối ưu hiệu năng
+hệ thống (ví dụ: tinh chỉnh kernel, cấu hình web server, caching, tối ưu database).
+
+2. Demo và Vận hành (6 điểm)
+● Hệ thống hoạt động (2 điểm): Trình diễn trực tiếp một hệ thống Private Cloud hoạt động ổn định, đầy đủ các chức năng như đã mô tả trong báo cáo. Giao diện quản lý hoạt động tốt.
+● Kiểm thử chịu tải (Stress Test) (4 điểm):
+○ Nhóm sẽ thực hiện một bài stress test trực tiếp trước hội đồng chấm thi bằng các công cụ như JMeter, K6, Apache Benchmark (ab), hoặc wrk.
+○ Kịch bản kiểm thử: Phải được xây dựng trước, mô tả rõ các luồng request (ví dụ: truy cập trang chủ, đọc bài viết, tìm kiếm sản phẩm).
+○ Tiêu chí đánh giá:
+
+■ Requests Per Second (RPS): Số lượng yêu cầu hợp lệ hệ thống xử lý được mỗi giây.
+■ Latency (p95, p99) theo Second: Độ trễ ở phân vị thứ 95 và 99.
+■ Error Rate: Tỷ lệ lỗi trong quá trình kiểm thử.
+■ Tỷ lệ RPS/Lantency
+○ Điểm sẽ được tính dựa trên khả năng chịu tải thực tế của hệ thống. Một hệ thống có tỷ lệ RPS/Lantency cao và error rate gần bằng 0 sẽ được đánh giá cao.
+
+Sản phẩm cần nộp
+1. Báo cáo cuối kỳ (file PDF): Bao gồm tất cả các nội dung trong phần "Báo cáo và Thiết kế".
+2. Mã nguồn và kịch bản (Source code & scripts): Toàn bộ mã nguồn ứng dụng (nếu tự phát triển) và các kịch bản tự động hóa.
+3. Video demo (tối đa 10 phút): Quay lại quá trình thao tác và hoạt động của hệ thống (đề
+phòng sự cố khi demo trực tiếp).
+4. Buổi trình bày và demo trực tiếp: Mỗi nhóm có 20 phút để trình bày và 10 phút cho phần Q&A và stress test.
+Chúc các nhóm thành công!
