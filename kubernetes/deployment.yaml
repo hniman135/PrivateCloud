@@ -77,7 +77,7 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
         - |
-          WEB_CONCURRENCY=$(($(nproc) * $WORKERS_PER_CORE + 1))
+          WEB_CONCURRENCY=$(( $(nproc) + 1 ))
           if [ $WEB_CONCURRENCY -gt $MAX_WORKERS ]; then WEB_CONCURRENCY=$MAX_WORKERS; fi
           export WEB_CONCURRENCY
           gunicorn main:app --workers $WEB_CONCURRENCY --worker-class uvicorn.workers.UvicornWorker --bind $HOST:$PORT
@@ -110,7 +110,7 @@ spec:
             cpu: 100m
             memory: 256Mi
           limits:
-            cpu: 500m
+            cpu: 1000m
             memory: 512Mi
         volumeMounts:
         - name: log-config

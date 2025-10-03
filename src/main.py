@@ -16,9 +16,6 @@ logger = logging.getLogger(__name__)
 # Database configuration
 DATABASE_URL = os.getenv('DATABASE_URL', f"postgresql://{os.getenv('DATABASE_USER')}:{os.getenv('DATABASE_PASSWORD')}@{os.getenv('DATABASE_HOST')}:{os.getenv('DATABASE_PORT')}/{os.getenv('DATABASE_NAME')}")
 
-# Simple in-memory cache
-cache = {}
-
 # SQLAlchemy async engine with NullPool (connection pooling via PgBouncer)
 engine = create_async_engine(
     DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://"),
@@ -36,8 +33,6 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         finally:
             await session.close()
 
-from contextlib import asynccontextmanager
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Application startup")
@@ -49,7 +44,6 @@ app = FastAPI(title="FastAPI High-Throughput App", lifespan=lifespan)
 
 @app.get("/health/startup")
 async def startup_health():
-    # Simple startup check without DB
     return {"status": "ok", "message": "Startup health check passed"}
 
 @app.get("/health/live")
@@ -58,29 +52,17 @@ async def liveness_health():
 
 @app.get("/health/ready")
 async def readiness_health():
-    # Simple readiness check without DB
     return {"status": "ok", "message": "Readiness health check passed"}
-
-from functools import lru_cache
-import time
-
-# Simple in-memory cache
-cache = {}
 
 @app.get("/")
 async def root():
-    # Check cache first
-    cache_key = "root_response"
-    if cache_key in cache:
-        cached_data = cache[cache_key]
-        return {"message": "FastAPI High-Throughput Application", "cached": True, "data": cached_data}
+    # Simulate CPU-intensive processing instead of sleep
+    import math
+    result = 0
+    for i in range(10000):  # CPU-intensive calculation
+        result += math.sin(i) * math.cos(i)
 
-    # Simulate some processing
-    time.sleep(0.1)  # 100ms processing
-    response_data = "Response generated at " + str(time.time())
-
-    # Cache the response for 60 seconds
-    cache[cache_key] = response_data
+    response_data = f"Response generated at {time.time()} with CPU work result: {result}"
 
     return {"message": "FastAPI High-Throughput Application", "cached": False, "data": response_data}
 

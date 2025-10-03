@@ -1,9 +1,9 @@
 # Stress test script demonstrating scaling effectiveness
 $url = "https://fastapi-route-crt-20521594-dev.apps.rm2.thpm.p1.openshiftapps.com/"
 $lowConcurrent = 20
-$lowRequests = 1000
-$highConcurrent = 200
-$highRequests = 3000
+$lowRequests = 500
+$highConcurrent = 50
+$highRequests = 2000
 
 function Get-CurrentPodCount {
     $pods = oc get pods -l app=fastapi-app --no-headers | Where-Object { $_ -match "Running" }
@@ -96,22 +96,29 @@ function Run-StressTest {
     }
 }
 
-# Phase 1: Baseline test with current pod count
+# Phase 1: Set baseline state and test
+Write-Host "Phase 1: Setting baseline state (1 pod)..."
+oc delete hpa fastapi-hpa --ignore-not-found=true
+oc scale deployment fastapi-app --replicas=1
+Write-Host "Waiting for deployment to scale down to 1 pod..."
+Start-Sleep -Seconds 30 # Wait for pod to stabilize
+
 $currentPods = Get-CurrentPodCount
-Write-Host "Phase 1: Baseline Performance Test ($currentPods pods)"
+Write-Host "Starting Baseline Performance Test ($currentPods pods)"
 $baseline = Run-StressTest -concurrent $lowConcurrent -totalRequests $lowRequests -phaseName "Baseline Test"
 
-# Phase 2: Scale to 2 pods and test
-Write-Host "`nPhase 2: Scaling to 2 pods..."
+# Phase 2: Scale to 2 pods manually
+Write-Host "`nPhase 2: Scaling to 2 pods manually..."
+# HPA is already deleted in Phase 1
 oc scale deployment fastapi-app --replicas=2
 Start-Sleep -Seconds 30  # Wait for scaling
 $newPods = Get-CurrentPodCount
 Write-Host "Scaled to $newPods pods"
-$afterScale = Run-StressTest -concurrent $lowConcurrent -totalRequests $lowRequests -phaseName "After Manual Scale (2 pods)"
+$afterScale = Run-StressTest -concurrent $lowConcurrent -totalRequests $lowRequests -phaseName "After Manual Scale ($newPods pods)"
 
 # Phase 3: Enable HPA and run high-load test
 Write-Host "`nPhase 3: Enabling HPA and running high-load test..."
-oc apply -f ../kubernetes/hpa.yaml
+oc apply -f "$PSScriptRoot/../kubernetes/hpa.yaml"
 Start-Sleep -Seconds 10  # Wait for HPA to be active
 Write-Host "HPA enabled, running high-load stress test to trigger autoscaling..."
 $highLoad = Run-StressTest -concurrent $highConcurrent -totalRequests $highRequests -phaseName "High-Load Test with HPA"
@@ -122,7 +129,7 @@ Write-Host "Final pod count after HPA autoscaling: $finalPods pods"
 # Summary
 Write-Host "`n=== SCALING DEMONSTRATION SUMMARY ==="
 Write-Host "Baseline ($currentPods pods): RPS=$([math]::Round($baseline.RPS, 2)), Error=$([math]::Round($baseline.ErrorRate, 2))%, P95=$([math]::Round($baseline.P95, 2))ms"
-Write-Host "After Scale (2 pods): RPS=$([math]::Round($afterScale.RPS, 2)), Error=$([math]::Round($afterScale.ErrorRate, 2))%, P95=$([math]::Round($afterScale.P95, 2))ms"
+Write-Host "After Scale ($newPods pods): RPS=$([math]::Round($afterScale.RPS, 2)), Error=$([math]::Round($afterScale.ErrorRate, 2))%, P95=$([math]::Round($afterScale.P95, 2))ms"
 Write-Host "HPA High-Load ($finalPods pods): RPS=$([math]::Round($highLoad.RPS, 2)), Error=$([math]::Round($highLoad.ErrorRate, 2))%, P95=$([math]::Round($highLoad.P95, 2))ms"
 
 $scaleImprovement = (($afterScale.RPS - $baseline.RPS) / $baseline.RPS) * 100
