@@ -23,14 +23,10 @@ function Run-StressTest {
             for ($j = 0; $j -lt $requests; $j++) {
                 $start = Get-Date
                 try {
-                    $tempFile = "temp_$($PID)_$j.txt"
-                    $process = Start-Process -FilePath "curl.exe" -ArgumentList "-k", "-s", "-w", "%{http_code}", $url -NoNewWindow -Wait -RedirectStandardOutput $tempFile
-                    $response = Get-Content $tempFile -Raw -ErrorAction SilentlyContinue
-                    Remove-Item $tempFile -ErrorAction SilentlyContinue
+                    $response = Invoke-WebRequest -Uri $url -SkipCertificateCheck -TimeoutSec 10
                     $end = Get-Date
                     $latency = ($end - $start).TotalMilliseconds
-                    $statusStr = $response[-3..-1] -join ""
-                    $status = [int]$statusStr
+                    $status = [int]$response.StatusCode
                     $results += @{
                         Status = $status
                         Latency = $latency
