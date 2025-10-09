@@ -1,0 +1,110 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgresql-backup
+  namespace: crt-20521594-dev
+spec:
+  # Run daily at 2:00 AM
+  schedule: "0 2 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: postgresql-backup
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: backup
+            image: registry.redhat.io/rhel8/postgresql-13:latest
+            command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              BACKUP_DIR="/backups"
+              TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+              BACKUP_FILE="$BACKUP_DIR/postgresql_backup_$TIMESTAMP.sql"
+              
+              echo "Starting PostgreSQL backup at $(date)"
+              echo "Backup file: $BACKUP_FILE"
+              
+              # Create backup directory if not exists
+              mkdir -p $BACKUP_DIR
+              
+              # Perform backup
+              PGPASSWORD=$DATABASE_PASSWORD pg_dump \
+                -h $DATABASE_HOST \
+                -p $DATABASE_PORT \
+                -U $DATABASE_USER \
+                -d $DATABASE_NAME \
+                -F p \
+                --no-owner \
+                --no-acl \
+                -f $BACKUP_FILE
+              
+              # Compress backup
+              gzip $BACKUP_FILE
+              
+              # Get file size
+              SIZE=$(du -h $BACKUP_FILE.gz | cut -f1)
+              echo "Backup completed successfully!"
+              echo "File: $BACKUP_FILE.gz"
+              echo "Size: $SIZE"
+              
+              # Clean up old backups (keep last 7 days)
+              find $BACKUP_DIR -name "postgresql_backup_*.sql.gz" -type f -mtime +7 -delete
+              echo "Old backups cleaned up"
+              
+              # List current backups
+              echo "Current backups:"
+              ls -lh $BACKUP_DIR/postgresql_backup_*.sql.gz 2>/dev/null || echo "No backups found"
+              
+            env:
+            - name: DATABASE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: fastapi-config
+                  key: DATABASE_HOST
+            - name: DATABASE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: fastapi-config
+                  key: DATABASE_PORT
+            - name: DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: fastapi-config
+                  key: DATABASE_NAME
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: fastapi-secret
+                  key: DATABASE_USER
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fastapi-secret
+                  key: DATABASE_PASSWORD
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backups
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: postgresql-backup-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgresql-backup-pvc
+  namespace: crt-20521594-dev
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi

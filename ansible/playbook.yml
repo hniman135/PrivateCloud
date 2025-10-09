@@ -1,0 +1,141 @@
+---
+# Ansible Playbook for FastAPI Private Cloud Deployment
+# This playbook automates the complete deployment process to OpenShift
+# Usage: ansible-playbook -i inventory playbook.yml
+
+- name: Deploy FastAPI Application to OpenShift
+  hosts: localhost
+  gather_facts: no
+  vars:
+    namespace: crt-20521594-dev
+    project_root: "{{ playbook_dir }}/.."
+    
+  tasks:
+    - name: Check if oc CLI is available
+      command: oc version --client
+      register: oc_version
+      changed_when: false
+      
+    - name: Display OpenShift client version
+      debug:
+        msg: "Using {{ oc_version.stdout_lines[0] }}"
+        
+    - name: Verify logged into OpenShift
+      command: oc whoami
+      register: oc_user
+      changed_when: false
+      failed_when: oc_user.rc != 0
+      
+    - name: Display current user
+      debug:
+        msg: "Logged in as: {{ oc_user.stdout }}"
+        
+    - name: Ensure project/namespace exists
+      command: "oc project {{ namespace }}"
+      register: project_result
+      changed_when: false
+      failed_when: false
+      
+    - name: Apply ConfigMaps
+      command: "oc apply -f {{ item }}"
+      loop:
+        - "{{ project_root }}/kubernetes/configmap.yaml"
+        - "{{ project_root }}/kubernetes/db-configmap.yaml"
+        - "{{ project_root }}/kubernetes/log-configmap.yaml"
+      register: configmap_result
+      
+    - name: Apply Secrets
+      command: "oc apply -f {{ project_root }}/kubernetes/secret.yaml"
+      register: secret_result
+      
+    - name: Apply PostgreSQL resources
+      command: "oc apply -f {{ project_root }}/kubernetes/postgresql.yaml"
+      register: postgres_result
+      
+    - name: Wait for PostgreSQL to be ready
+      command: "oc wait --for=condition=available --timeout=300s deployment/postgresql"
+      register: postgres_wait
+      retries: 3
+      delay: 10
+      until: postgres_wait.rc == 0
+      
+    - name: Apply FastAPI Service
+      command: "oc apply -f {{ project_root }}/kubernetes/service.yaml"
+      register: service_result
+      
+    - name: Apply FastAPI Deployment
+      command: "oc apply -f {{ project_root }}/kubernetes/deployment.yaml"
+      register: deployment_result
+      
+    - name: Wait for FastAPI deployment to be ready
+      command: "oc wait --for=condition=available --timeout=300s deployment/fastapi-app"
+      register: fastapi_wait
+      retries: 3
+      delay: 10
+      until: fastapi_wait.rc == 0
+      
+    - name: Apply Route
+      command: "oc apply -f {{ project_root }}/kubernetes/route.yaml"
+      register: route_result
+      
+    - name: Apply HPA (Horizontal Pod Autoscaler)
+      command: "oc apply -f {{ project_root }}/kubernetes/hpa.yaml"
+      register: hpa_result
+      
+    - name: Get deployment status
+      command: "oc get deployment fastapi-app -o json"
+      register: deployment_status
+      changed_when: false
+      
+    - name: Display deployment info
+      debug:
+        msg: 
+          - "Deployment: {{ (deployment_status.stdout | from_json).metadata.name }}"
+          - "Replicas: {{ (deployment_status.stdout | from_json).status.replicas }}"
+          - "Available: {{ (deployment_status.stdout | from_json).status.availableReplicas | default(0) }}"
+          
+    - name: Get route URL
+      command: "oc get route fastapi-route -o jsonpath='{.spec.host}'"
+      register: route_url
+      changed_when: false
+      
+    - name: Display application URL
+      debug:
+        msg: "Application is available at: https://{{ route_url.stdout }}"
+        
+    - name: Test application health endpoint
+      uri:
+        url: "https://{{ route_url.stdout }}/health/live"
+        validate_certs: no
+        return_content: yes
+      register: health_check
+      retries: 5
+      delay: 10
+      until: health_check.status == 200
+      
+    - name: Display health check result
+      debug:
+        msg: "Health check passed: {{ health_check.json }}"
+        
+    - name: Get all pods
+      command: "oc get pods -l app=fastapi-app"
+      register: pods_list
+      changed_when: false
+      
+    - name: Display pods status
+      debug:
+        msg: "{{ pods_list.stdout_lines }}"
+        
+    - name: Deployment summary
+      debug:
+        msg:
+          - "=========================================="
+          - "Deployment Summary"
+          - "=========================================="
+          - "ConfigMaps: Applied"
+          - "Secrets: Applied"
+          - "PostgreSQL: Running"
+          - "FastAPI App: Running"
+          - "HPA: Configured"
+          - "URL: https://{{ route_url.stdout }}"
+          - "=========================================="

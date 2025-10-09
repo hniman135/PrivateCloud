@@ -44,6 +44,8 @@ spec:
             configMapKeyRef:
               name: db-config
               key: database
+        - name: POSTGRESQL_MAX_CONNECTIONS
+          value: "200"
         volumeMounts:
         - name: postgresql-storage
           mountPath: /var/lib/pgsql/data
@@ -51,3 +53,17 @@ spec:
       - name: postgresql-storage
         persistentVolumeClaim:
           claimName: postgresql-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql
+spec:
+  selector:
+    app: postgresql
+  ports:
+  - name: postgresql
+    port: 5432
+    targetPort: 5432
+    protocol: TCP
+  type: ClusterIP
