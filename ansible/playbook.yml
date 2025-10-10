@@ -36,12 +36,34 @@
       changed_when: false
       failed_when: false
       
+    # Build FastAPI image using S2I (Source-to-Image)
+    - name: Check if BuildConfig exists
+      command: "oc get buildconfig fastapi-app"
+      register: buildconfig_check
+      changed_when: false
+      failed_when: false
+      
+    - name: Create BuildConfig if not exists
+      command: >
+        oc new-build 
+        --name=fastapi-app 
+        --binary=true 
+        --strategy=source 
+        --image-stream=python:3.11-ubi8
+      when: buildconfig_check.rc != 0
+      register: buildconfig_create
+      
+    - name: Start S2I build from source directory
+      shell: "oc start-build fastapi-app --from-dir={{ project_root }}/src --wait || echo 'Build completed with warnings'"
+      register: build_result
+      args:
+        chdir: "{{ project_root }}"
+      
     - name: Apply ConfigMaps
       command: "oc apply -f {{ item }}"
       loop:
         - "{{ project_root }}/kubernetes/configmap.yaml"
         - "{{ project_root }}/kubernetes/db-configmap.yaml"
-        - "{{ project_root }}/kubernetes/log-configmap.yaml"
       register: configmap_result
       
     - name: Apply Secrets

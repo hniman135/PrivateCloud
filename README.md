@@ -1,59 +1,24 @@
-# Private Cloud FastAPI Project
+# OpenShift Clients
 
-Dự án triển khai ứng dụng FastAPI trên Red Hat OpenShift với PostgreSQL và horizontal scaling.
+The OpenShift client `oc` simplifies working with Kubernetes and OpenShift
+clusters, offering a number of advantages over `kubectl` such as easy login,
+kube config file management, and access to developer tools. The `kubectl`
+binary is included alongside for when strict Kubernetes compliance is necessary.
 
-## Cấu trúc thư mục
+To learn more about OpenShift, visit [docs.openshift.com](https://docs.openshift.com)
+and select the version of OpenShift you are using.
 
-```
-.
-├── .s2i/                    # Source-to-Image configuration
-├── docs/                    # Documentation
-│   ├── project_report.md    # Báo cáo dự án
-│   └── Đồ+Án+giữa+kỳ+môn+Cloud.txt
-├── kubernetes/              # Kubernetes manifests
-│   ├── configmap.yaml
-│   ├── db-configmap.yaml
-│   ├── deployment.yaml
-│   ├── hpa.yaml
-│   ├── log-configmap.yaml
-│   ├── pgbouncer-configmap.yaml
-│   ├── pgbouncer-deployment.yaml
-│   ├── pgbouncer-service.yaml
-│   ├── pgo-subscription.yaml
-│   ├── pipeline.yaml
-│   ├── postgresql.yaml
-│   ├── route.yaml
-│   ├── secret.yaml
-│   └── service.yaml
-├── scripts/                 # Utility scripts
-│   ├── final_stress_test.ps1
-│   ├── pgo-subscription.yaml
-│   ├── pipeline.yaml
-│   ├── simple_test.ps1
-│   └── stress_test.ps1
-├── src/                     # Source code
-│   ├── Dockerfile
-│   ├── log_config.ini
-│   ├── log_config.json
-│   ├── main.py
-│   └── requirements.txt
-└── tests/                   # Test files (empty)
-```
+## Installing the tools
 
-## Cách sử dụng
+After extracting this archive, move the `oc` and `kubectl` binaries
+to a location on your PATH such as `/usr/local/bin`. Then run:
 
-1. Triển khai: `oc apply -f kubernetes/`
-2. Build: `oc new-build --strategy=source --image-stream=python:3.9 --name=fastapi-app .`
-3. Stress test: `.\scripts\final_stress_test.ps1`
+    oc login [API_URL]
 
-## Demo
+to start a session against an OpenShift cluster. After login, run `oc` and
+`oc help` to learn more about how to get started with OpenShift.
 
-- **Hướng dẫn demo chi tiết**: Xem `demo_guide.md`
-- **Script demo tự động**: Chạy `.\demo_script.ps1` để demo tự động
-- **Thời gian demo**: ~15-20 phút
+## License
 
-## Yêu cầu
-
-- OpenShift CLI (oc)
-- PowerShell (cho stress test)
-- Python 3.9+ (cho development)
+OpenShift is licensed under the Apache Public License 2.0. The source code for this
+program is [located on github](https://github.com/openshift/oc).
